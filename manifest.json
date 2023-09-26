@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "DataGrabber",
+  "version": "1.0",
+  "description": "A Chrome extension to view or copy the stored values from the local storage or session storage of the currently opened tab in the browser.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],  
+  "action": {
+    "default_icon": "assets/key.png",
+    "default_popup": "popup.html"
+  }
+}
