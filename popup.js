@@ -1,8 +1,19 @@
+const ElementVisibility = {
+  VISIBLE: "block",
+  HIDDEN: "none",
+};
+
+const DEFAULT_DROPDOWN_OPTION_VALUE = "Select a key";
+const DROPDOWN_OPTION_NO_DATA_VALUE = "No data found";
+const DEFAULT_INNER_DROPDOWN_OPTION_VALUE = "Select field (optional)";
+
 document.addEventListener("DOMContentLoaded", function () {
   var storageData = null;
   const dropdown = document.getElementById("keysDropdown");
+  const innerKeysDropdown = document.getElementById("innerKeysDropdown");
 
   var currentSelectedValue = null;
+  var innerField = null;
   var currentStorageType = "localStorage"; // default to localStorage
 
   function updateDropdown() {
@@ -10,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const storageKeys = Object.keys(storageData);
     if (storageKeys.length === 0) {
       const optionElement = document.createElement("option");
-      optionElement.text = "No data found";
+      optionElement.text = DROPDOWN_OPTION_NO_DATA_VALUE;
       dropdown.add(optionElement);
     } else {
       // Add the options to the dropdown
@@ -22,6 +33,30 @@ document.addEventListener("DOMContentLoaded", function () {
         optionElement.value = key;
         optionElement.text = key;
         dropdown.add(optionElement);
+      });
+    }
+  }
+
+  function updateInnerKeysDropdown() {
+    innerKeysDropdown.innerHTML = ""; // clear the dropdown
+    const innerFields = Object.keys(
+      JSON.parse(storageData[currentSelectedValue])
+    );
+    if (innerFields.length === 0) {
+      const optionElement = document.createElement("option");
+      optionElement.text = "No fields found";
+      innerKeysDropdown.add(optionElement);
+    } else {
+      // Add the options to the dropdown
+      const defaultOptionElement = document.createElement("option");
+      defaultOptionElement.text = DEFAULT_INNER_DROPDOWN_OPTION_VALUE;
+      defaultOptionElement.value = DEFAULT_INNER_DROPDOWN_OPTION_VALUE;
+      innerKeysDropdown.add(defaultOptionElement);
+      innerFields.forEach((key) => {
+        const optionElement = document.createElement("option");
+        optionElement.value = key;
+        optionElement.text = key;
+        innerKeysDropdown.add(optionElement);
       });
     }
   }
@@ -42,19 +77,19 @@ document.addEventListener("DOMContentLoaded", function () {
   updateStorageData();
 
   dropdown.addEventListener("change", function () {
+    innerField = null;
     currentSelectedValue = dropdown.value;
-    console.log(
-      `Selected Value: ${currentSelectedValue}`,
-      typeof storageData[currentSelectedValue],
-      storageData[currentSelectedValue]
-    );
-    if (
-      typeof storageData[currentSelectedValue] === "object" ||
-      (typeof storageData[currentSelectedValue] === "string" &&
-        isJsonified(storageData[currentSelectedValue]))
-    ) {
-      console.log("its an object");
+    if (isObjectField(storageData[currentSelectedValue])) {
+      setInnerKeysDropdownVisibility(ElementVisibility.VISIBLE);
+      updateInnerKeysDropdown();
+    } else {
+      setInnerKeysDropdownVisibility(ElementVisibility.HIDDEN);
     }
+  });
+
+  innerKeysDropdown.addEventListener("change", function () {
+    innerField = innerKeysDropdown.value;
+    console.log(`Selected inner Value: ${innerField}`);
   });
 
   const localStorageRadio = document.getElementById("localStorageRadio");
@@ -82,7 +117,18 @@ document.addEventListener("DOMContentLoaded", function () {
       storageData &&
       storageData[currentSelectedValue]
     ) {
-      const selectedValue = storageData[currentSelectedValue];
+      var selectedValue = storageData[currentSelectedValue];
+      console.log(
+        currentSelectedValue,
+        selectedValue,
+        innerField,
+        typeof innerField
+      );
+      // if (innerField && innerField !== "null") {
+      if (innerField && innerField !== DEFAULT_INNER_DROPDOWN_OPTION_VALUE) {
+        selectedValue = JSON.parse(selectedValue)[innerField];
+      }
+      console.log("final", currentSelectedValue, selectedValue, innerField);
       if (showValueCheckbox.checked) {
         copyContent(selectedValue, true);
       }
@@ -117,11 +163,32 @@ document.addEventListener("DOMContentLoaded", function () {
       window.alert("Some error occurred!");
     }
   }
+
+  const setInnerKeysDropdownVisibility = (visibility) => {
+    const elem = document.getElementById("innerKeysDropdown");
+    elem.style.display = visibility;
+  };
 });
 
-const isJsonified = (input) => {
+const isNumber = (input) => {
+  typeof input !== "object" &&
+    !Number.isNaN(
+      +String(
+        (String(input) || "").replace(/[^0-9\.\-e]/, "") !== String(input) ||
+          input === ""
+          ? NaN
+          : input
+      )
+    );
+};
+
+const isObjectField = (data) => {
+  return isJsonified(data) && typeof JSON.parse(data) === "object";
+};
+
+const isJsonified = (data) => {
   try {
-    JSON.parse(input);
+    JSON.parse(data);
     return true;
   } catch (err) {
     return false;
